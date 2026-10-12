@@ -57,3 +57,20 @@ it('reads protected branches from git config', function () {
     expect($repo->git->protectedBranches())->toBe(['main', 'uat'])
         ->and($repo->git->isProtected('develop'))->toBeFalse();
 });
+
+it('lets the repository value replace the global one instead of adding to it', function () {
+    $repo = repo();
+    $global = dirname($repo->path).'/global.gitconfig';
+    file_put_contents($global, "[gitprompt]\n\tprotected = develop uat main\n");
+    $repo->git('config', 'gitprompt.protected', 'main main release');
+
+    putenv("GIT_CONFIG_GLOBAL={$global}");
+    $_SERVER['GIT_CONFIG_GLOBAL'] = $global;
+
+    try {
+        expect($repo->git->protectedBranches())->toBe(['main', 'release']);
+    } finally {
+        putenv('GIT_CONFIG_GLOBAL=/dev/null');
+        $_SERVER['GIT_CONFIG_GLOBAL'] = '/dev/null';
+    }
+});

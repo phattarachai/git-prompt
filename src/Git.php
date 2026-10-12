@@ -265,20 +265,21 @@ class Git
     }
 
     /**
-     * Branches that need a typed confirmation before a merge, push or delete touches them.
-     * Set with `git config --global gitprompt.protected "main develop uat"`.
+     * Branches pinned on top (in this order) that need a typed confirmation before a merge,
+     * push or delete touches them. Set with `git config --global gitprompt.protected "develop uat main"`;
+     * a repository's own value replaces the global one.
      *
      * @return list<string>
      */
     public function protectedBranches(): array
     {
-        $configured = $this->value(['config', '--get-all', 'gitprompt.protected']);
+        $configured = $this->value(['config', '--get', 'gitprompt.protected']);
 
         if ($configured === '') {
             return self::DEFAULT_PROTECTED;
         }
 
-        return array_values(array_filter(preg_split('/[\s,]+/', $configured) ?: []));
+        return array_values(array_unique(array_filter(preg_split('/[\s,]+/', $configured) ?: [])));
     }
 
     public function isProtected(string $branch): bool
