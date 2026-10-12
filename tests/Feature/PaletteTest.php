@@ -70,5 +70,5 @@ it('opens on the Branches tab and switches to Actions with Tab', function () {
 
     answer([Key::TAB, 'stat', Key::ENTER]);
     expect((new Palette($repo->git, $repo->console))())->toBeTrue();
-    Prompt::assertOutputContains('Working tree clean');
+    Prompt::assertOutputContains('working tree clean');
 });

@@ -2,12 +2,15 @@
 
 use Laravel\Prompts\Key;
 use Laravel\Prompts\Prompt;
+use Phattarachai\GitPrompt\Editor;
 use Phattarachai\GitPrompt\Tests\TestRepo;
 
 foreach (['GIT_CONFIG_GLOBAL' => '/dev/null', 'GIT_CONFIG_NOSYSTEM' => '1'] as $name => $value) {
     putenv("{$name}={$value}");
     $_SERVER[$name] = $_ENV[$name] = $value;
 }
+
+Editor::$interactive = false;
 
 uses()->afterEach(fn () => TestRepo::cleanUp())->in(__DIR__);
 

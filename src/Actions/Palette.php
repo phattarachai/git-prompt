@@ -4,22 +4,28 @@ namespace Phattarachai\GitPrompt\Actions;
 
 use Phattarachai\GitPrompt\Branch;
 use Phattarachai\GitPrompt\BranchOrder;
+use Phattarachai\GitPrompt\Editor;
 use Phattarachai\GitPrompt\Prompts\Cancelled;
 use Phattarachai\GitPrompt\Prompts\TabbedSearch;
+use Phattarachai\GitPrompt\Worktree;
+use Phattarachai\GitPrompt\Worktrees;
 
 use function Laravel\Prompts\intro;
 
 /**
- * The main popup: a Branches tab (default) and an Actions tab, each type-to-filter.
+ * The main popup: Branches (default), Actions and — with more than one worktree — Worktrees, each type-to-filter.
  * Esc in a submenu comes back to the tab you left; Esc here quits.
  */
 class Palette extends Action
 {
     private int $lastTab = 0;
 
-    public function __invoke(bool $branchesOnly = false): bool
+    public const int WORKTREES_TAB = 2;
+
+    public function __invoke(bool $branchesOnly = false, int $startTab = 0): bool
     {
         $this->header();
+        $this->lastTab = $startTab;
 
         while (true) {
             $branches = BranchOrder::sort($this->git->branches(), $this->git->protectedBranches(), $this->git->branchSort());
@@ -29,6 +35,13 @@ class Palette extends Action
 
             if (! $branchesOnly || $inProgress) {
                 $tabs[] = ['title' => 'Actions', 'entries' => $this->actionEntries($branchesOnly)];
+            }
+
+            $worktrees = [];
+
+            if (! $branchesOnly && count($this->git->worktreeList()) > 1) {
+                $worktrees = (new Worktrees($this->git))->all();
+                $tabs[] = ['title' => 'Worktrees', 'entries' => $this->worktreeEntries($worktrees)];
             }
 
             $search = new TabbedSearch(
@@ -53,7 +66,7 @@ class Palette extends Action
             }
 
             try {
-                return $this->dispatch($choice, $branches);
+                return $this->dispatch($choice, $branches, $worktrees);
             } catch (Cancelled) {
                 continue;
             }
@@ -78,11 +91,20 @@ class Palette extends Action
 
     /**
      * @param  list<Branch>  $branches
+     * @param  list<Worktree>  $worktrees
      */
-    private function dispatch(string $choice, array $branches): bool
+    private function dispatch(string $choice, array $branches, array $worktrees): bool
     {
         if (str_starts_with($choice, 'branch:')) {
             return $this->make(BranchMenu::class)($branches[(int) substr($choice, strlen('branch:'))]);
+        }
+
+        if (str_starts_with($choice, 'worktree:')) {
+            return $this->make(WorktreeMenu::class)($worktrees[(int) substr($choice, strlen('worktree:'))], $worktrees);
+        }
+
+        if ($choice === 'overlaps') {
+            return $this->make(Overlaps::class)($worktrees);
         }
 
         $conflicts = $this->make(Conflicts::class);
@@ -96,9 +118,18 @@ class Palette extends Action
             'new' => $this->make(NewBranch::class)(),
             'stash' => $this->make(Stash::class)(),
             'status' => $this->make(Status::class)(),
+            'changes' => $this->make(FileChanges::class)->current(),
+            'lazygit' => $this->lazygit(),
             'cleanup' => $this->make(Cleanup::class)(),
             default => true,
         };
+    }
+
+    private function lazygit(): bool
+    {
+        Editor::interactive(['lazygit'], $this->git->topLevel());
+
+        return true;
     }
 
     private function toggleSort(): void
@@ -126,6 +157,8 @@ class Palette extends Action
                 'new' => ['+', 'New Branch…'],
                 'stash' => ['≡', 'Stash…'],
                 'status' => ['•', 'Status'],
+                'changes' => ['◇', 'Changes… (view diff of each file)'],
+                'lazygit' => Editor::has('lazygit') ? ['⧉', 'Open lazygit'] : null,
                 'cleanup' => ['✕', 'Delete Branches… (clean up)'],
             ];
         }
@@ -134,7 +167,7 @@ class Palette extends Action
             $actions['sort'] = ['⇅', $this->git->branchSort() === 'name' ? 'Sort branches by recent commit' : 'Sort branches by name'];
         }
 
-        return array_map(fn (array $action) => ['label' => "{$action[0]} {$action[1]}", 'search' => $action[1]], $actions);
+        return array_map(fn (array $action) => ['label' => "{$action[0]} {$action[1]}", 'search' => $action[1]], array_filter($actions));
     }
 
     /**
@@ -163,6 +196,39 @@ class Palette extends Action
             $entries["branch:{$index}"] = [
                 'label' => "{$mark} {$branch->ref()}".($details === [] ? '' : '   '.implode(' · ', $details)),
                 'search' => $branch->ref(),
+            ];
+        }
+
+        return $entries;
+    }
+
+    /**
+     * @param  list<Worktree>  $worktrees
+     * @return array<string, array{label: string, search: string}>
+     */
+    private function worktreeEntries(array $worktrees): array
+    {
+        $entries = [];
+        $overlaps = Worktrees::overlaps($worktrees);
+
+        if ($overlaps !== []) {
+            $entries['overlaps'] = [
+                'label' => '⚠ '.count($overlaps).' file(s) edited in more than one worktree',
+                'search' => 'overlaps conflicts',
+            ];
+        }
+
+        $width = max(array_map(fn (Worktree $worktree) => mb_strlen($worktree->name), $worktrees));
+        $branchWidth = max(array_map(fn (Worktree $worktree) => mb_strlen($worktree->branch ?? 'detached'), $worktrees));
+
+        foreach ($worktrees as $index => $worktree) {
+            $mark = $worktree->isCurrent ? '●' : ' ';
+            $branch = $worktree->branch ?? 'detached';
+            $locked = $worktree->isLocked ? ' · locked' : '';
+
+            $entries["worktree:{$index}"] = [
+                'label' => sprintf("%s %-{$width}s   %-{$branchWidth}s   %s%s", $mark, $worktree->name, $branch, $worktree->summary(), $locked),
+                'search' => "{$worktree->name} {$branch}",
             ];
         }
 
