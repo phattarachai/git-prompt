@@ -337,6 +337,56 @@ class Git
     }
 
     /**
+     * Every worktree of this repository, the main one first.
+     *
+     * @return list<array{path: string, branch: ?string, locked: bool, prunable: bool}>
+     */
+    public function worktreeList(): array
+    {
+        $worktrees = [];
+
+        foreach (preg_split('/\n\n+/', $this->value(['worktree', 'list', '--porcelain'])) ?: [] as $block) {
+            $fields = [];
+
+            foreach (explode("\n", $block) as $line) {
+                [$key, $value] = array_pad(explode(' ', $line, 2), 2, '');
+                $fields[$key] = $value;
+            }
+
+            if (! isset($fields['worktree'])) {
+                continue;
+            }
+
+            $worktrees[] = [
+                'path' => $fields['worktree'],
+                'branch' => isset($fields['branch']) ? preg_replace('#^refs/heads/#', '', $fields['branch']) : null,
+                'locked' => array_key_exists('locked', $fields),
+                'prunable' => array_key_exists('prunable', $fields),
+            ];
+        }
+
+        return $worktrees;
+    }
+
+    /**
+     * Files the current branch changed since it left $base (committed work only).
+     *
+     * @return list<array{status: string, path: string}>
+     */
+    public function committedChanges(string $base): array
+    {
+        $output = $this->value(['diff', '--name-status', '--no-renames', "{$base}...HEAD"]);
+        $changes = [];
+
+        foreach (array_filter(explode("\n", $output)) as $line) {
+            [$status, $path] = array_pad(explode("\t", $line, 2), 2, '');
+            $changes[] = ['status' => $status, 'path' => $path];
+        }
+
+        return $changes;
+    }
+
+    /**
      * @return list<array{ref: string, subject: string, date: string}>
      */
     public function stashes(): array

@@ -39,6 +39,13 @@ works in any git repository, Laravel or not, from one global install.
   locally and on the remote in one go. Unmerged work gets a second warning; protected branches are never offered.
 - **Worktree aware.** A branch checked out in another worktree is marked, and checkout tells you where it lives
   instead of failing.
+- **A Worktrees tab for parallel work** (several agents or people, one repository). Every worktree in one list —
+  branch, files not committed, commits not yet in the base branch — and a warning row for **files edited in more than
+  one worktree**, the ones that will conflict when the branches meet. Pick a worktree to see its changes, open it in
+  your editor or lazygit, copy its `cd`, or remove it once it is clean.
+- **Read every changed file's diff.** Pick a file from the changes list to open its diff in git's pager (delta, if you
+  use it) and come back for the next one with `q`. A file another worktree also touches can be compared with that
+  worktree's copy before the branches meet.
 
 ## Install
 
@@ -65,6 +72,11 @@ alias g="$HOME/.composer/vendor/bin/g"
 | `g st` | Stash — save, or pop / apply / show / drop a saved one |
 | `g n` | New branch from the current one |
 | `g d` | Delete many branches, locally and on the remote |
+| `g v` | View changes — pick a file, read its diff |
+| `g w` | Worktrees — what each one changed, and files edited in more than one |
+
+`g s` lists both what is not committed and what this branch committed since the base branch (`origin/HEAD`),
+flagging files another worktree touches too.
 
 ## Configuration
 
@@ -79,7 +91,22 @@ git config --global gitprompt.sort name
 
 # How a diverged branch updates: rebase | merge (default: ask every time)
 git config --global gitprompt.update rebase
+
+# Editor for "Open in editor" (default: the first of phpstorm, pstorm, code, cursor on your PATH)
+git config --global gitprompt.editor phpstorm
 ```
+
+Diffs open in git's own pager, so they look the way `git diff` does for you. For syntax-highlighted, side-by-side
+diffs, [delta](https://github.com/dandavison/delta) is a good pager:
+
+```bash
+brew install git-delta
+git config --global core.pager delta
+git config --global delta.side-by-side true
+```
+
+When [lazygit](https://github.com/jesseduffield/lazygit) is installed, the Actions tab and each worktree's menu offer
+**Open lazygit**, for reviewing many files with the list and the diff side by side.
 
 ## Testing
 

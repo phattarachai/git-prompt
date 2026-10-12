@@ -5,6 +5,7 @@ namespace Phattarachai\GitPrompt;
 use Composer\InstalledVersions;
 use Phattarachai\GitPrompt\Actions\Cleanup;
 use Phattarachai\GitPrompt\Actions\Commit;
+use Phattarachai\GitPrompt\Actions\FileChanges;
 use Phattarachai\GitPrompt\Actions\NewBranch;
 use Phattarachai\GitPrompt\Actions\Palette;
 use Phattarachai\GitPrompt\Actions\Push;
@@ -15,6 +16,7 @@ use Phattarachai\GitPrompt\Prompts\Cancelled;
 use Phattarachai\GitPrompt\Prompts\Escape;
 
 use function Laravel\Prompts\error;
+use function Laravel\Prompts\info;
 
 class Application
 {
@@ -30,6 +32,8 @@ class Application
         'st' => [Stash::class, 'Stash'],
         'n' => [NewBranch::class, 'New branch'],
         'd' => [Cleanup::class, 'Delete many branches (local and remote)'],
+        'v' => [FileChanges::class, 'View changes — pick a file, read its diff'],
+        'w' => [Palette::class, 'Worktrees — what each one changed, and files edited in more than one'],
     ];
 
     /**
@@ -71,14 +75,22 @@ class Application
 
         Escape::install();
 
-        if (in_array($command, ['', 'b'], true)) {
-            return $palette(branchesOnly: $command === 'b') ? 0 : 1;
+        if ($command === 'w' && count($git->worktreeList()) < 2) {
+            info('This repository has only one worktree — `g s` shows its changes.');
+
+            return 0;
+        }
+
+        if (in_array($command, ['', 'b', 'w'], true)) {
+            return $palette(branchesOnly: $command === 'b', startTab: $command === 'w' ? Palette::WORKTREES_TAB : 0) ? 0 : 1;
         }
 
         $palette->header();
 
         try {
-            return (new (self::COMMANDS[$command][0])($git, $console))() ? 0 : 1;
+            $action = new (self::COMMANDS[$command][0])($git, $console);
+
+            return ($action instanceof FileChanges ? $action->current() : $action()) ? 0 : 1;
         } catch (Cancelled) {
             return 0;
         }
