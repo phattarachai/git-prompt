@@ -30,7 +30,7 @@ works in any git repository, Laravel or not, from one global install.
   from, Compare with current, Merge into current, Rebase current onto, Rename, Delete.
 - **Shows the git it runs.** Every command is printed before it runs (`→ git switch develop`), so nothing is hidden
   and you learn the commands as you go.
-- **Guard rails**: protected branches need their name typed back before a merge, push, rebase or delete; smart
+- **Guard rails**: protected branches need their name typed back before a push, rebase or delete (a merge stays local, so it just runs); smart
   checkout stashes clashing changes and brings them back; a rejected push offers update-then-push or
   `--force-with-lease`; never a plain `--force`.
 - **Conflicts are a state, not a dead end.** A merge or rebase that stops on conflicts offers Abort; resolve in your
@@ -66,7 +66,7 @@ alias g="$HOME/.composer/vendor/bin/g"
 | `g` | Search branches and actions |
 | `g b` | Branches only |
 | `g s` | Status |
-| `g up` | Update Project — fetch, then fast-forward; asks rebase or merge when diverged |
+| `g up` | Update Project — fetch, then fast-forward; asks rebase or merge when diverged, and always merges when an unpushed merge commit would be flattened |
 | `g c` | Commit — pick files, write a message, optionally push |
 | `g p` | Push — sets the upstream for a new branch |
 | `g st` | Stash — save, or pop / apply / show / drop a saved one |
@@ -83,7 +83,7 @@ flagging files another worktree touches too.
 Plain `git config`, so it can be global or per repository:
 
 ```bash
-# Pinned on top in this order, and need their name typed back (default: main master develop)
+# Pinned on top in this order, and need their name typed back before a push, rebase or delete (default: main master develop)
 git config --global gitprompt.protected "develop uat main"
 
 # Branch order after the pinned ones: recent | name (default: recent; also toggled from the Actions tab)

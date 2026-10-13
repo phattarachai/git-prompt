@@ -3,6 +3,7 @@
 namespace Phattarachai\GitPrompt\Actions;
 
 use Phattarachai\GitPrompt\Branch;
+use Phattarachai\GitPrompt\Prompts\Menu;
 
 use function Laravel\Prompts\error;
 use function Laravel\Prompts\info;
@@ -12,6 +13,10 @@ use function Laravel\Prompts\info;
  */
 class Integrate extends Action
 {
+    /**
+     * Merge $source into the current branch. No typed confirmation, even on a protected branch:
+     * the merge stays local until a push, and Push asks for it.
+     */
     public function merge(Branch $source): bool
     {
         $current = $this->git->currentBranch();
@@ -26,10 +31,6 @@ class Integrate extends Action
             info("Nothing to merge — '{$current}' already has everything in '{$source->ref()}'.");
 
             return true;
-        }
-
-        if ($this->git->isProtected($current) && ! $this->console->confirmTyped($current, "Merge '{$source->ref()}' into protected '{$current}'")) {
-            return false;
         }
 
         $result = $this->console->run(['merge', '--no-edit', '--autostash', $source->ref()]);
@@ -60,6 +61,21 @@ class Integrate extends Action
             info("'{$current}' is already on top of '{$base->ref()}'.");
 
             return true;
+        }
+
+        if ($this->git->countMergesBetween($base->ref(), $current) > 0) {
+            $choice = Menu::choose(
+                label: "'{$current}' has merge commits that '{$base->ref()}' lacks — a rebase replays every commit they brought in.",
+                options: [
+                    'merge' => "Merge '{$base->ref()}' into '{$current}' instead",
+                    'rebase' => 'Rebase anyway (flattens the merges)',
+                    'cancel' => 'Cancel',
+                ],
+            );
+
+            if ($choice !== 'rebase') {
+                return $choice === 'merge' && $this->merge($base);
+            }
         }
 
         if ($this->git->isProtected($current) && ! $this->console->confirmTyped($current, "Rebase protected '{$current}' (rewrites its history)")) {

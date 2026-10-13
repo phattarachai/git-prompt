@@ -240,6 +240,15 @@ class Git
     }
 
     /**
+     * Merge commits on $from that are not on $to. A rebase would flatten them, replaying
+     * every commit they brought in one by one.
+     */
+    public function countMergesBetween(string $to, string $from): int
+    {
+        return (int) $this->value(['rev-list', '--merges', '--count', "{$to}..{$from}"]);
+    }
+
+    /**
      * @return list<string>
      */
     public function remotes(): array

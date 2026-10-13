@@ -6,6 +6,7 @@ use Phattarachai\GitPrompt\Prompts\Menu;
 
 use function Laravel\Prompts\error;
 use function Laravel\Prompts\info;
+use function Laravel\Prompts\note;
 use function Laravel\Prompts\warning;
 
 /**
@@ -74,6 +75,12 @@ class Update extends Action
     private function divergedArguments(string $current, string $upstream, int $ahead, int $behind): ?array
     {
         $strategy = $this->git->updateStrategy();
+
+        if ($this->git->countMergesBetween('@{u}', 'HEAD') > 0) {
+            note("'{$current}' has a merge commit that is not pushed yet — merging, because a rebase would replay every commit it brought in.");
+
+            $strategy = 'merge';
+        }
 
         if ($strategy === 'ask') {
             $strategy = Menu::choose(

@@ -34,6 +34,24 @@ it('rebases a diverged branch when asked', function () {
         ->and($repo->git('log', '--format=%s', '-3'))->toBe("Mine\nTeammate\nInitial commit");
 });
 
+it('merges instead of rebasing when the local commits include a merge', function () {
+    $repo = repo();
+    $repo->git('config', 'gitprompt.update', 'rebase');
+    $mate = $repo->teammate();
+    $mate->commit('b.txt', "b\n", 'Teammate');
+    $mate->git('push', '--quiet');
+    $repo->git('switch', '--quiet', '-c', 'hotfix');
+    $repo->commit('README.md', "hotfix\n", 'Hotfix');
+    $repo->git('switch', '--quiet', 'main');
+    $repo->git('merge', '--quiet', '--no-ff', '--no-edit', 'hotfix');
+
+    answer([]);
+
+    expect((new Update($repo->git, $repo->console))())->toBeTrue()
+        ->and($repo->git('rev-list', '--merges', '--count', 'HEAD'))->toBe('2')
+        ->and($repo->read('b.txt'))->toBe("b\n");
+});
+
 it('pushes a new branch and sets its upstream', function () {
     $repo = repo();
     $repo->git('switch', '--quiet', '-c', 'feat/new');
