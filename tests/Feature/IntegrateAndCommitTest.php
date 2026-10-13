@@ -48,6 +48,18 @@ it('continues a merge only after the conflict markers are gone', function () {
         ->and($repo->git('log', '-1', '--format=%P'))->toContain(' ');
 });
 
+it('merges into a protected branch without asking for its name', function () {
+    $repo = repo();
+    $repo->git('switch', '--quiet', '-c', 'feat/a');
+    $repo->commit('a.txt', "a\n", 'A');
+    $repo->git('switch', '--quiet', 'main');
+
+    answer([]);
+
+    expect((new Integrate($repo->git, $repo->console))->merge($repo->git->findBranch('feat/a')))->toBeTrue()
+        ->and($repo->read('a.txt'))->toBe("a\n");
+});
+
 it('commits only the selected files', function () {
     $repo = repo();
     $repo->write('README.md', "changed\n");

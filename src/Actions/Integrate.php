@@ -12,6 +12,10 @@ use function Laravel\Prompts\info;
  */
 class Integrate extends Action
 {
+    /**
+     * Merge $source into the current branch. No typed confirmation, even on a protected branch:
+     * the merge stays local until a push, and Push asks for it.
+     */
     public function merge(Branch $source): bool
     {
         $current = $this->git->currentBranch();
@@ -26,10 +30,6 @@ class Integrate extends Action
             info("Nothing to merge — '{$current}' already has everything in '{$source->ref()}'.");
 
             return true;
-        }
-
-        if ($this->git->isProtected($current) && ! $this->console->confirmTyped($current, "Merge '{$source->ref()}' into protected '{$current}'")) {
-            return false;
         }
 
         $result = $this->console->run(['merge', '--no-edit', '--autostash', $source->ref()]);
