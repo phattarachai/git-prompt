@@ -3,6 +3,7 @@
 namespace Phattarachai\GitPrompt\Actions;
 
 use Phattarachai\GitPrompt\Branch;
+use Phattarachai\GitPrompt\Prompts\Menu;
 
 use function Laravel\Prompts\error;
 use function Laravel\Prompts\info;
@@ -60,6 +61,21 @@ class Integrate extends Action
             info("'{$current}' is already on top of '{$base->ref()}'.");
 
             return true;
+        }
+
+        if ($this->git->countMergesBetween($base->ref(), $current) > 0) {
+            $choice = Menu::choose(
+                label: "'{$current}' has merge commits that '{$base->ref()}' lacks — a rebase replays every commit they brought in.",
+                options: [
+                    'merge' => "Merge '{$base->ref()}' into '{$current}' instead",
+                    'rebase' => 'Rebase anyway (flattens the merges)',
+                    'cancel' => 'Cancel',
+                ],
+            );
+
+            if ($choice !== 'rebase') {
+                return $choice === 'merge' && $this->merge($base);
+            }
         }
 
         if ($this->git->isProtected($current) && ! $this->console->confirmTyped($current, "Rebase protected '{$current}' (rewrites its history)")) {

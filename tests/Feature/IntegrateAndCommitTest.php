@@ -60,6 +60,24 @@ it('merges into a protected branch without asking for its name', function () {
         ->and($repo->read('a.txt'))->toBe("a\n");
 });
 
+it('offers a merge instead of rebasing a branch that has merge commits', function () {
+    $repo = repo();
+    $repo->git('switch', '--quiet', '-c', 'feat/a');
+    $repo->git('switch', '--quiet', '-c', 'feat/b');
+    $repo->commit('b.txt', "b\n", 'B');
+    $repo->git('switch', '--quiet', 'feat/a');
+    $repo->git('merge', '--quiet', '--no-ff', '--no-edit', 'feat/b');
+    $repo->git('switch', '--quiet', 'main');
+    $repo->commit('m.txt', "m\n", 'Main');
+    $repo->git('switch', '--quiet', 'feat/a');
+
+    answer([Key::ENTER]);
+
+    expect((new Integrate($repo->git, $repo->console))->rebaseOnto($repo->git->findBranch('main')))->toBeTrue()
+        ->and($repo->git('rev-list', '--merges', '--count', 'HEAD'))->toBe('2')
+        ->and($repo->read('m.txt'))->toBe("m\n");
+});
+
 it('commits only the selected files', function () {
     $repo = repo();
     $repo->write('README.md', "changed\n");

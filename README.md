@@ -66,7 +66,7 @@ alias g="$HOME/.composer/vendor/bin/g"
 | `g` | Search branches and actions |
 | `g b` | Branches only |
 | `g s` | Status |
-| `g up` | Update Project — fetch, then fast-forward; asks rebase or merge when diverged |
+| `g up` | Update Project — fetch, then fast-forward; asks rebase or merge when diverged, and always merges when an unpushed merge commit would be flattened |
 | `g c` | Commit — pick files, write a message, optionally push |
 | `g p` | Push — sets the upstream for a new branch |
 | `g st` | Stash — save, or pop / apply / show / drop a saved one |
