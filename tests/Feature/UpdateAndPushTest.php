@@ -64,15 +64,12 @@ it('pushes a new branch and sets its upstream', function () {
         ->and($repo->git('rev-parse', '--abbrev-ref', '@{u}'))->toBe('origin/feat/new');
 });
 
-it('does not push to a protected branch unless its name is typed back', function () {
+it('pushes to a protected branch without asking for its name', function () {
     $repo = repo();
     $repo->commit('c.txt', "c\n", 'Mine');
 
-    answer(['mian', Key::ENTER]);
-    expect((new Push($repo->git, $repo->console))())->toBeFalse()
-        ->and($repo->git('rev-list', '--count', '@{u}..HEAD'))->toBe('1');
+    answer([]);
 
-    answer(['main', Key::ENTER]);
     expect((new Push($repo->git, $repo->console))())->toBeTrue()
         ->and($repo->git('rev-list', '--count', '@{u}..HEAD'))->toBe('0');
 });

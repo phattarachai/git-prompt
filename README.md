@@ -30,7 +30,7 @@ works in any git repository, Laravel or not, from one global install.
   from, Compare with current, Merge into current, Rebase current onto, Rename, Delete.
 - **Shows the git it runs.** Every command is printed before it runs (`→ git switch develop`), so nothing is hidden
   and you learn the commands as you go.
-- **Guard rails**: protected branches need their name typed back before a push, rebase or delete (a merge stays local, so it just runs); smart
+- **Guard rails**: protected branches need their name typed back before a rebase, a delete or a force push; smart
   checkout stashes clashing changes and brings them back; a rejected push offers update-then-push or
   `--force-with-lease`; never a plain `--force`.
 - **Conflicts are a state, not a dead end.** A merge or rebase that stops on conflicts offers Abort; resolve in your
@@ -83,7 +83,7 @@ flagging files another worktree touches too.
 Plain `git config`, so it can be global or per repository:
 
 ```bash
-# Pinned on top in this order, and need their name typed back before a push, rebase or delete (default: main master develop)
+# Pinned on top in this order, and need their name typed back before a rebase, delete or force push (default: main master develop)
 git config --global gitprompt.protected "develop uat main"
 
 # Branch order after the pinned ones: recent | name (default: recent; also toggled from the Actions tab)
