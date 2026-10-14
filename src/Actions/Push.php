@@ -48,10 +48,6 @@ class Push extends Action
             }
         }
 
-        if ($this->git->isProtected($current) && ! $this->console->confirmTyped($current, "Push to protected '{$current}'")) {
-            return false;
-        }
-
         $result = $this->console->run($arguments, 'Pushing…');
 
         if ($result->successful()) {

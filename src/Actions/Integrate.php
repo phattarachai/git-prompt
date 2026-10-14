@@ -14,8 +14,7 @@ use function Laravel\Prompts\info;
 class Integrate extends Action
 {
     /**
-     * Merge $source into the current branch. No typed confirmation, even on a protected branch:
-     * the merge stays local until a push, and Push asks for it.
+     * Merge $source into the current branch. No typed confirmation, even on a protected branch.
      */
     public function merge(Branch $source): bool
     {
